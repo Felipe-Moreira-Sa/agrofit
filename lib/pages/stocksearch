@@ -1,0 +1,201 @@
+//StockSearch
+import 'package:flutter/material.dart';
+import 'package:stock_app/pages/stockdetail.dart';
+import 'package:stock_app/services/stockservice.dart';
+import 'package:stock_app/models/stock.dart';
+
+class StockSearch extends StatefulWidget {
+  const StockSearch({Key? key}) : super(key: key);
+  @override
+  State<StockSearch> createState() => _StockSearchState();
+}
+
+class _StockSearchState extends State<StockSearch>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final TextEditingController _searchController = TextEditingController();
+  final StockService _stockService = StockService();
+  List<Stock> _stocks = [];
+  bool _loading = false;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    Widget _buildSearchField() {
+      return TextField(
+        controller: _searchController,
+        cursorColor: Colors.white,
+        style: const TextStyle(color: Colors.white),
+        decoration: const InputDecoration(
+          hintText: 'Search for a stock...',
+          border: InputBorder.none,
+          hintStyle: TextStyle(color: Colors.white),
+        ),
+        onChanged: (String searchTerm) async {
+          if (searchTerm.length > 0) {
+            setState(() {
+              _loading = true;
+            });
+            List<Stock> stocks =
+                await _stockService.getStocksBySymbol(searchTerm);
+            setState(() {
+              _stocks = stocks;
+              _loading = false;
+            });
+          }
+        },
+      );
+    }
+
+    Widget _buildStocks() {
+      if (_loading) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      }
+      return ListView.builder(
+        itemCount: _stocks.length,
+        itemBuilder: (BuildContext context, int index) {
+          Stock stock = _stocks[index];
+          return ListTile(
+            title: Text(stock.symbol),
+            subtitle: Text(stock.name),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StockDetail(stock: stock),
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: _buildSearchField(),
+        backgroundColor: Colors.black,
+      ),
+      backgroundColor: Colors.black,
+      body: _buildStocks(),
+    );
+  }
+  // StockService
+}
+// classe Stock para build
+return Scaffold(
+  appBar: AppBar(
+    title: const Text("Stocks"),
+    actions: [
+      IconButton(
+        icon: const Icon(Icons.search),
+        onPressed: () async {
+          String? query = await showSearch(
+            context: context,
+            delegate: StockSearch(stockData),
+          );
+          if (query != null) {
+            List<StockData> searchResult = searchStock(query, stockData);
+            // Atualize a lista de dados de ações com os resultados da pesquisa
+            setState(() {
+              stockDataList = Future.value(searchResult);
+            });
+          }
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.account_circle),
+        onPressed: () {},
+      ),
+      IconButton(
+        icon: const Icon(Icons.sort),
+        onPressed: () {},
+      ),
+    ],
+    backgroundColor: Colors.black,
+  ),
+  body: FutureBuilder<List<StockData>>(
+    future: stockDataList,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());
+      } else if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      } else {
+        List<StockData> stocks = snapshot.data ?? [];
+        return ListView.builder(
+          itemCount: stocks.length,
+          itemBuilder: (context, index) {
+            StockData stock = stocks[index];
+            return _buildStockItem(
+              stock.name,
+              stock.ticker,
+              stock.price,
+              stock.priceFuture,
+              stock.sector,
+              calculatePercentage(stock),
+            );
+          },
+        );
+      }
+    },
+  ),
+  bottomNavigationBar: BottomAppBar(
+    shape: const CircularNotchedRectangle(),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.account_balance_wallet),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => agroPage()),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.trending_up),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PrevisaoPage()),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.category_outlined),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CarteiraSetoresPage(),
+              ),
+            );
+          },
+        ),
+      ],
+    ),
+  ),
+);
